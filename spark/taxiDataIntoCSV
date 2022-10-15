@@ -1,0 +1,26 @@
+# Code Snipper will extract taxi data for year 2019 in CSV format, with headers
+
+# Azure storage access info
+blob_account_name = "azureopendatastorage"
+blob_container_name = "nyctlc"
+blob_relative_path = "yellow/puYear=2019"
+blob_sas_token = r""
+
+# Allow SPARK to read from Blob remotely
+wasbs_path = 'wasbs://%s@%s.blob.core.windows.net/%s' % (blob_container_name, blob_account_name, blob_relative_path)
+spark.conf.set(
+  'fs.azure.sas.%s.%s.blob.core.windows.net' % (blob_container_name, blob_account_name),
+  blob_sas_token)
+print('Remote blob path: ' + wasbs_path)
+
+# SPARK read parquet, note that it won't load any data yet by now
+df = spark.read.parquet(wasbs_path)
+print('Register the DataFrame as a SQL temporary view: source')
+df.createOrReplaceTempView('source')
+
+# Header Information
+# vendorID, tpepPickupDateTime, tpepDropoffDateTime, passengerCount, tripDistance, puLocationId, doLocationId,
+#   startLon, startLat, endLon, endLat, rateCodeId, storeAndFwdFlag, paymentType, fareAmount, extra, mtaTax, 
+#   improvementSurcharge, tipAmount, tollsAmount, totalAmount, puMonth
+
+df.write.mode("overwrite").csv("abfss://oszamora@oszamora.dfs.core.windows.net/taxi/", header=True)
